@@ -3,13 +3,27 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 using Photon.Pun;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement;
-using Unity.VisualScripting;
+
 
 public class BattleManager : MonoBehaviourPunCallbacks
 {
     [SerializeField]
     private GameObject go;
+
+    [SerializeField]
+    private GameObject aimPoint;
+
+    [SerializeField]
+    private GameObject missile;
+
+    [SerializeField]
+    private GameObject missile2;
+
+    [SerializeField] 
+    private GameObject explose;
+
+    [SerializeField]
+    private GameObject splash;
 
     [SerializeField]
     private Tilemap enemyTile;
@@ -30,7 +44,6 @@ public class BattleManager : MonoBehaviourPunCallbacks
     [SerializeField]
     private Image enemyTurnUI;
 
-    private AudioSource audioSource;
     private GlobalDataSingleton instance; 
 
     void Start()
@@ -38,7 +51,7 @@ public class BattleManager : MonoBehaviourPunCallbacks
         StartCoroutine(Init());       
     }
 
-    IEnumerator Init()
+    IEnumerator Init() // 전투를 시작하기 전에 오브젝트들을 셋팅한다.
     {
         instance = GlobalDataSingleton.GetSingletonInstance();
 
@@ -48,7 +61,12 @@ public class BattleManager : MonoBehaviourPunCallbacks
         missTile = Resources.Load<TileBase>("Tiles/tile_green");
         hitTile = Resources.Load<TileBase>("Tiles/tile_red");
 
-        ObjectPool.InitPool();
+        aimPoint = ObjectPool.GetPoolObject((int)ObjectPool.ObjectType.aimpoint); 
+        missile = ObjectPool.GetPoolObject((int)ObjectPool.ObjectType.missile);
+        missile2 = ObjectPool.GetPoolObject((int)ObjectPool.ObjectType.missile2); 
+
+        explose = ObjectPool.GetPoolObject((int)ObjectPool.ObjectType.explose);
+        splash = ObjectPool.GetPoolObject((int)ObjectPool.ObjectType.splash);
 
         if (PhotonNetwork.IsMasterClient)
         {
@@ -60,6 +78,9 @@ public class BattleManager : MonoBehaviourPunCallbacks
         {
             enemyTurnUI.gameObject.SetActive(true);
         }
+
+        instance.isReady = true;
+
         yield return null;
     }
 
@@ -128,43 +149,35 @@ public class BattleManager : MonoBehaviourPunCallbacks
         ChangeTurnUI();
     }
 
-   
+   public void SetObject(GameObject go, Vector3 spawnPosition)
+    {
+        go.transform.position = spawnPosition;
+        go.transform.rotation = Quaternion.identity;
+        go.SetActive(true);
+    }
 
     [PunRPC]
     public void Attack(Vector3 spawnPosition, bool player1)
     {
-        go = ObjectPool.GetPoolObject((int)ObjectPool.ObjectType.aimpoint); // 조준점을 생성한다.
-        go.transform.position = spawnPosition;
-        go.transform.rotation = Quaternion.identity;
-        go.SetActive(true);
-        PlaySound();
+        SetObject(aimPoint, spawnPosition); // 조준점을 셋팅한다.
 
         if (player1) // 방장이면 미사일을 아래에서 쏜다
         {
-            go = ObjectPool.GetPoolObject((int)ObjectPool.ObjectType.missile);
             spawnPosition.y -= 10f;
+            SetObject(missile, spawnPosition);
         }
 
         else // 플레이어2면 위에서 미사일을 쏜다
         {
-            go = ObjectPool.GetPoolObject((int)ObjectPool.ObjectType.missile2);
             spawnPosition.y += 10f;
+            SetObject(missile2, spawnPosition);
         }
-        
-        go.transform.position = spawnPosition;
-        go.transform.rotation = Quaternion.identity;
-        go.SetActive(true);
-        PlaySound();
     }
 
     [PunRPC]
     public void Explose(Vector3 spawnPosition)
     {
-        go = ObjectPool.GetPoolObject((int)ObjectPool.ObjectType.explose); // 폭발 오브젝트를 활성화한다.
-        go.transform.position = spawnPosition;
-        go.transform.rotation = Quaternion.identity;
-        go.SetActive(true);
-        PlaySound();
+        SetObject(explose, spawnPosition);
 
         if (instance.isMyTurn) // 공격을 실행한 자리에 빨간색 타일을 셋팅한다.
         {
@@ -182,11 +195,7 @@ public class BattleManager : MonoBehaviourPunCallbacks
     [PunRPC]
     public void Splash(Vector3 spawnPosition)
     {
-        go = ObjectPool.GetPoolObject((int)ObjectPool.ObjectType.splash); // splash 오브젝트를 활성화한다.
-        go.transform.position = spawnPosition;
-        go.transform.rotation = Quaternion.identity;
-        go.SetActive(true);
-        PlaySound();
+        SetObject(splash, spawnPosition);
 
         if (instance.isMyTurn) // 공격을 실행한 자리에 초록색 타일을 셋팅한다.
         {
@@ -224,11 +233,7 @@ public class BattleManager : MonoBehaviourPunCallbacks
         }
     }
 
-    public void PlaySound()
-    {
-        audioSource = go.GetComponent<AudioSource>();
-        audioSource.Play();
-    }
+    
 
     IEnumerator SetDestroiedShip() // 상대의 함선을 격침 시켰으면 그 위치에 함선을 표시하는 메소드다.
     {
@@ -264,6 +269,6 @@ public class BattleManager : MonoBehaviourPunCallbacks
         yield return new WaitForSeconds(3);
 
         PhotonNetwork.LeaveRoom();
-        SceneManager.LoadScene("LobbyScene"); // 3초 후 게임을 종료한다.
+         // 3초 후 게임을 종료한다.
     }
 }
