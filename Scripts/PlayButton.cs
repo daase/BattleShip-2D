@@ -1,10 +1,7 @@
 using Photon.Pun;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 using UnityEngine.UI;
-using static UnityEngine.GraphicsBuffer;
 
 public class PlayButton : MonoBehaviourPunCallbacks
 {
@@ -54,7 +51,6 @@ public class PlayButton : MonoBehaviourPunCallbacks
 
         if ((playersReady == 2)) // 2명 모두 버튼을 눌렀다면 battlemanager를 활성화하고 게임을 진행한다. 
         {
-            instance.isReady = true;
             playBtn = GameObject.Find("Canvas/PlayButton").GetComponent<Button>();
             playBtn.interactable = false;
             battleManager.SetActive(true);

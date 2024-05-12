@@ -35,6 +35,8 @@ public class GameManager : MonoBehaviourPunCallbacks
         instance.popUp = popUp;
         instance.popUpText = popUpText;
 
+        ObjectPool.InitPool(); // 오브젝트 풀에 오브젝트들을 미리 넣어둔다.
+
         foreach (var ship in instance.Ships)
         {
             ship.SetActive(false); // 게임시작 전 비활성화           
@@ -81,14 +83,8 @@ public class GameManager : MonoBehaviourPunCallbacks
             playBtn.interactable = true; // play버튼 활성화
         }
     }
-
-    public void ExitGame()
-    {
-        PhotonNetwork.LeaveRoom();
-        SceneManager.LoadScene("LobbyScene");
-    }
     
-    public override void OnPlayerEnteredRoom(Photon.Realtime.Player newPlayer)
+    public override void OnPlayerEnteredRoom(Photon.Realtime.Player newPlayer) // 방의 인원 수가 바뀌니 다시 인원을 체크한다.
     {       
         CheckPlayerCount();
     }
@@ -103,8 +99,13 @@ public class GameManager : MonoBehaviourPunCallbacks
         instance.SetPopUp("상대가 게임을 종료했습니다.");
 
         yield return new WaitForSeconds(3f);
-        
-        ExitGame(); //상대가 없으니 3초 뒤에 게임을 종료한다.
+
+        PhotonNetwork.LeaveRoom(); //상대가 없으니 3초 뒤에 게임을 종료한다.
+    }
+
+    public override void OnLeftRoom() // 방을 나갈 때 lobby씬을 불러온다.
+    {
+        SceneManager.LoadScene("LobbyScene");
     }
 
 }
